@@ -12,5 +12,12 @@ namespace Serilog.Sinks.RollingFileAlternate.Tests
             var sut = new LogFileInfo(new DateTime(2015, 01, 15), 77);
             Assert.Equal(sut.FileName, "20150115-00077.log");
         }
+
+        [Fact]
+        public void RendersCorrectlyWithDateAndSequenceNumberAndPrefix()
+        {
+            var sut = new LogFileInfo(new DateTime(2015, 01, 15), 77, "test-file");
+            Assert.Equal(sut.FileName, "test-file-20150115-00077.log");
+        }
     }
 }

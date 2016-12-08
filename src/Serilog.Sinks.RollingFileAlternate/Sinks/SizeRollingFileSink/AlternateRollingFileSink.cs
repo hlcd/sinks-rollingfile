@@ -17,7 +17,7 @@ namespace Serilog.Sinks.RollingFileAlternate.Sinks.SizeRollingFileSink
     /// </summary>
     public class AlternateRollingFileSink : ILogEventSink, IDisposable
     {
-        private static readonly string ThisObjectName = (typeof (SizeLimitedFileSink).Name);
+        private static readonly string ThisObjectName = (typeof(SizeLimitedFileSink).Name);
         private readonly ITextFormatter formatter;
         private readonly long fileSizeLimitBytes;
         private readonly int? retainedFileCountLimit;
@@ -26,6 +26,7 @@ namespace Serilog.Sinks.RollingFileAlternate.Sinks.SizeRollingFileSink
         private readonly object syncRoot = new object();
         private bool disposed;
         private readonly string logDirectory;
+        private string prefix;
 
         /// <summary>
         /// Construct a <see cref="AlternateRollingFileSink"/>
@@ -40,13 +41,17 @@ namespace Serilog.Sinks.RollingFileAlternate.Sinks.SizeRollingFileSink
             ITextFormatter formatter,
             long fileSizeLimitBytes,
             int? retainedFileCountLimit = null,
-            Encoding encoding = null)
+            Encoding encoding = null,
+            string prefix = null
+            )
         {
             this.formatter = formatter;
             this.fileSizeLimitBytes = fileSizeLimitBytes;
             this.retainedFileCountLimit = retainedFileCountLimit;
             this.encoding = encoding;
             this.logDirectory = logDirectory;
+            this.prefix = prefix;
+
             this.currentSink = GetLatestSink();
         }
 
@@ -89,7 +94,7 @@ namespace Serilog.Sinks.RollingFileAlternate.Sinks.SizeRollingFileSink
         {
             EnsureDirectoryCreated(this.logDirectory);
 
-            LogFileInfo logFileInfo = LogFileInfo.GetLatestOrNew(DateTime.UtcNow, this.logDirectory);
+            LogFileInfo logFileInfo = LogFileInfo.GetLatestOrNew(DateTime.UtcNow, this.logDirectory, prefix);
 
             return new SizeLimitedFileSink(
                 this.formatter,

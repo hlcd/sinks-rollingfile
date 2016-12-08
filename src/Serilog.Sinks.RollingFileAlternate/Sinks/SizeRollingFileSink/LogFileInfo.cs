@@ -12,12 +12,14 @@ namespace Serilog.Sinks.RollingFileAlternate.Sinks.SizeRollingFileSink
         internal uint Sequence { get; private set; }
         internal string FileName { get; private set; }
         internal DateTime Date { get; private set; }
+        internal string Prefix { get; private set; }
 
-        public LogFileInfo(DateTime date, uint sequence)
+        public LogFileInfo(DateTime date, uint sequence, string prefix = null)
         {
             this.Date = date;
             this.Sequence = sequence;
-            this.FileName = String.Format("{0}-{1}.log", date.ToString(DateFormat), sequence.ToString(NumberFormat));
+            this.Prefix = prefix;
+            this.FileName = String.Format("{2}{0}-{1}.log", date.ToString(DateFormat), sequence.ToString(NumberFormat), Prefix != null ? Prefix + "-" : "");
         }
 
         public LogFileInfo Next()
@@ -25,17 +27,17 @@ namespace Serilog.Sinks.RollingFileAlternate.Sinks.SizeRollingFileSink
             DateTime now = DateTime.UtcNow;
             if (this.Date.Date != now.Date)
             {
-                return new LogFileInfo(now, 1);
+                return new LogFileInfo(now, 1, Prefix);
             }
 
-            return new LogFileInfo(now, this.Sequence + 1);
+            return new LogFileInfo(now, this.Sequence + 1, Prefix);
         }
 
-        internal static LogFileInfo GetLatestOrNew(DateTime date, string logDirectory)
+        internal static LogFileInfo GetLatestOrNew(DateTime date, string logDirectory, string prefix = null)
         {
             string pattern = date.ToString(DateFormat) + @"-(\d{5}).log";
 
-            var logFileInfo = new LogFileInfo(date, 1);
+            var logFileInfo = new LogFileInfo(date, 1, prefix);
 
             foreach (var filePath in Directory.GetFiles(logDirectory))
             {
@@ -46,7 +48,7 @@ namespace Serilog.Sinks.RollingFileAlternate.Sinks.SizeRollingFileSink
 
                     if (sequence > logFileInfo.Sequence)
                     {
-                        logFileInfo = new LogFileInfo(date, sequence);
+                        logFileInfo = new LogFileInfo(date, sequence, prefix);
                     }
                 }
             }

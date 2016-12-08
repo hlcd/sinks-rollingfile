@@ -37,6 +37,34 @@ namespace Serilog.Sinks.RollingFileAlternate.Tests
             }
         }
 
+        public class GetLatestLogFileInfoOrNewPrefixed
+        {
+            string prefix = "test-file";
+            [Fact]
+            public void SequenceIsOneWhenNoPreviousFile()
+            {
+                using (var dir = new TestDirectory())
+                {
+                    var latest = LogFileInfo.GetLatestOrNew(new DateTime(2015, 01, 15), dir.LogDirectory, prefix);
+                    Assert.Equal<uint>(latest.Sequence, 1);
+                }
+            }
+
+            [Fact]
+            public void SequenceIsEqualToTheHighestFileWritten()
+            {
+                var date = new DateTime(2015, 01, 15);
+                using (var dir = new TestDirectory())
+                {
+                    dir.CreateLogFile(date, 1, prefix);
+                    dir.CreateLogFile(date, 2, prefix);
+                    dir.CreateLogFile(date, 3, prefix);
+                    var latest = LogFileInfo.GetLatestOrNew(new DateTime(2015, 01, 15), dir.LogDirectory, prefix);
+                    Assert.Equal<uint>(latest.Sequence, 3);
+                }
+            }
+        }
+
         [Fact]
         public void ItCreatesNewFileWhenSizeLimitReached()
         {
@@ -48,6 +76,24 @@ namespace Serilog.Sinks.RollingFileAlternate.Tests
                 Assert.Equal<uint>(sizeRollingSink.CurrentLogFile.LogFileInfo.Sequence, 1);
                 sizeRollingSink.Emit(logEvent);
                 Assert.Equal<uint>(sizeRollingSink.CurrentLogFile.LogFileInfo.Sequence, 2);
+            }
+        }
+
+
+        [Fact]
+        public void ItCreatesNewPrefixedFileWhenSizeLimitReached()
+        {
+            var prefix = "test-log";
+            using (var dir = new TestDirectory())
+            using (var sizeRollingSink = new AlternateRollingFileSink(dir.LogDirectory, new RawFormatter(), 10, prefix: prefix))
+            {
+                var logEvent = Some.InformationEvent();
+                sizeRollingSink.Emit(logEvent);
+                Assert.Equal<uint>(sizeRollingSink.CurrentLogFile.LogFileInfo.Sequence, 1);
+                Assert.Equal(prefix, sizeRollingSink.CurrentLogFile.LogFileInfo.Prefix);
+                sizeRollingSink.Emit(logEvent);
+                Assert.Equal<uint>(sizeRollingSink.CurrentLogFile.LogFileInfo.Sequence, 2);
+                Assert.Equal(prefix, sizeRollingSink.CurrentLogFile.LogFileInfo.Prefix);
             }
         }
 
@@ -70,11 +116,11 @@ namespace Serilog.Sinks.RollingFileAlternate.Tests
 
             public string LogDirectory { get { return this.folder; } }
 
-            public void CreateLogFile(DateTime date, uint sequence)
+            public void CreateLogFile(DateTime date, uint sequence, string prefix = null)
             {
                 lock (_lock)
                 {
-                    string fileName = Path.Combine(this.folder, new LogFileInfo(date, sequence).FileName);
+                    string fileName = Path.Combine(this.folder, new LogFileInfo(date, sequence, prefix).FileName);
                     File.Create(fileName).Dispose(); // touch
                 }
             }
